@@ -80,6 +80,24 @@ Both segment and offset come from task state. Consequently:
 
 The caller at `0x411D8` was found by different means, not by unwinding.
 
+## No free code space next to the C runtime
+
+The Romanian upper-case fix (`ro-upcase`) needed about 30 more bytes in the
+runtime code segment `0D1Dh` (file `0xF5D0`); a far jump elsewhere would need
+a new MZ relocation, which a same-size patch cannot add. Two ideas failed:
+
+- **Dead runtime functions.** Every function between `0x10000` and `0x10800`
+  has far callers (the linker pulls in only what is used). `strlwr` has two:
+  a name that the text engine lowercases then re-capitalises (`0x3DACD`), and
+  a file mode string (`0x76E87`). None can go.
+- **The 905 zero bytes before the data segment** (`0x1D617`-`0x1D99F`), after
+  the overlay thunks. A RAM dump after loading a save shows 70 of them
+  written: overlay manager state. Only the new-game screen still has them
+  all zero. Do not put code there.
+
+What worked: `strlwr`, `strupr` and `_fstrupr` share one loop with the
+letter bounds in CX, which frees enough room in place.
+
 ## Emulator traps that cost real time
 
 - **Ubuntu's packaged QEMU 8.2.2 aborts** on guest disk writes when using

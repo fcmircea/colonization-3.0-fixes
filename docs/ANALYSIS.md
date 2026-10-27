@@ -341,7 +341,66 @@ of the turn. This is the original game, not one of these patches.
   so it is 0 on a route. Then everything is deposited.
 - Runtime: Jamestown furs set to 195 (capacity 200), a route unload made it
   210 with no prompt.
-- The manual `U` unload shows WAREHOUSEFULL ("Unload anyway") but does not cap
-  the amount either.
+- The manual `U` unload on the map has its own inline code (`0x41520`-`0x415E8`):
+  it shows WAREHOUSEFULL ("Unload anyway") but does not cap the amount either.
+  Not changed by the patch below.
 
-A cap would be a new patch (about 50 bytes in three places); not built.
+### The cap (`traderoute-unload-cap` + `-loop`, October 2026)
+
+Who calls the unload routine. The route loop (`0x411E8`, flag 0), and three
+colony-screen paths through the overlay's local stub `0x2C9C9` (`ljmp
+191F:0594`, called at `0x2AD5E`, `0x2BA1B`, `0x2BFD7`; a byte search for the
+far call finds only the route). Every one of those chains starts in the
+colony screen `0x2C5D4`, which sets `[0890]` = 1 at `0x2C60F` and clears it at
+`0x2C965`, the only two writers. So inside the routine `[0890]` = 0 means:
+called by the route loop. Two colony-screen callers also pass flag 0, so the
+flag cannot tell them apart.
+
+The routine already knows how to unload part of a hold. Its "how much?" path
+(`0x2A79E`-`0x2A7C1`) takes `ax` = amount wanted and sets `[bp-0Ah]` = amount
+- wanted, `[8DC4h]` = min(wanted, amount); wanted <= 0 returns without a
+change; otherwise it re-enters the capacity check. The deposit at `0x2A854`
+then removes the hold (`181F:0AEC`), adds `[8DC4h]` to the colony and gives
+`[bp-0Ah]` back to the unit (`181F:0D58`, which tops up a hold of the same good
+or takes a free one).
+
+Site 1, `0x2A7CA` (35 bytes, the capacity check rewritten in place; `ax` is the
+capacity returned by `181F:0D3A`):
+
+```
+2A7CA  mov si,[bp+8] / shl si,1 / mov bx,[8542]
+2A7D3  sub ax,[bx+si+9Ah]     ; room = capacity - stock
+2A7D7  cmp ax,[8DC4]          ; room >= amount: deposit all (0x2A854)
+2A7DD  or si,si               ; food: deposit all
+2A7E1  cmp word [0890],0      ; colony screen: the warning at 0x2A7ED, unchanged
+2A7E8  inc word [bp-6]        ; return 2 if nothing fits
+2A7EB  jmp 2A79E              ; partial unload of `room`
+```
+
+Site 2, `0x411F0` (route loop): `cmp [bp-1Ah],0 / jge 0x4121C` becomes `or
+ax,ax / jz 0x4121C`. The loop looks for another hold of the same good only
+when the unload returned 0. The original loop ignores the return value and
+re-finds the hold until none is left, so with goods kept on board it would
+never end. After a capped deposit the routine returns 0, the loop re-finds the
+remainder, the next call has room 0 and returns 2, and the loop moves on to
+the next good. The Europe unload (`0x32914`) returns 0 after a sale; its
+returns of 1 (no hold, the prompt) cannot happen from the route loop.
+
+No relocation in either site; no public or Romanian patch site overlaps.
+`tests/test_unload_cap.py` runs both sites in `x86mini`: over capacity on a
+route (195 + 15 at 200: deposit 5, keep 10), full colony (no change, return
+2), food, the colony-screen warning, and the loop's three cases.
+
+QEMU, 2026-10-27 (KVM, `play/unload-cap`, untracked; the 2026-10-19
+overflow save):
+
+| EXE | Jamestown furs | wagon after the stop |
+|---|---|---|
+| `--all` (`1905cb45`) | 195 → 210 | empty |
+| `--all` + cap pair (`40c58272`) | 195 → 200 | 1 hold, 10 furs |
+
+15 SPACE steps (into the next turn), no hang. At the wagon's pick-up stop `traderoute-topup` filled
+the kept hold to 20. Regression with the same EXE pair on the v2 scenarios:
+Europe stop gold 4612 → 4792 and the boycotted 100 furs kept on board in both;
+colony stop cotton 0 → 5, furs 62 → 77 in both. Not yet checked: DOSBox and a
+long game.

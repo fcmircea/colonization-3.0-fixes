@@ -1,0 +1,392 @@
+# Romanian glyphs for the Colonization fonts (draft 1, Claude, 2026-09-27).
+# Block: [FONTNAME letter], then one line per pixel row (exactly the font height).
+# '.' clear, '1' main colour, '2' shadow, '3' edge. All rows of a glyph: same width.
+# Method copied from MicroProse's German fonts: mark on top rows for lowercase;
+# capitals with a mark above are squashed by two rows (German Ä/Ü); the comma of
+# ș/ț goes in the row under the baseline. Slot bytes: see SLOTS in fontedit.py.
+# FONTINTR drop shadow (revised 2026-09-29, as the German ä/ö/ü): every main
+# pixel '1' of a mark gets '3' to its right and '2' below it, except where the
+# shadow would land on the letter body (rows 0-1 hold the mark, the body starts
+# at row 2). The comma of ș/ț/Ș/Ț is one '1' with '3' to its right in row 8.
+# Â Î: mark in rows 0-1, body squashed into rows 2-6, so the letter keeps the
+# full cap height; Î is drawn like î (in this font I and l are one bar too).
+# Ă: a solid bar in row 0, its shadow in row 1, over the full-height A (Florin's
+# pick 5, 2026-09-29). A green cup on the A's apex reads as X (tester S11); a
+# brown cup vanishes on wood and on the highlight bar, leaving Ä (Florin's
+# pirate-dialogue screenshot). FONTTINY ă/Ă: solid 3-px bar, one clear row,
+# body; tiny Ă sits 1 px low so the A keeps its pointed top (was read as H). Two
+# dots read as a broken top / German ä (Florin's shape, 2026-09-29).
+# FONTTINY Î: open hat, one clear row, 3-px stem ending 1 px below the line;
+# FONTTINY î: the same with a 2-px stem on the line, so Î is î plus one pixel at
+# the foot (Florin's pair P2, 2026-09-29; hat touching the stem read as short, a
+# base serif read as "2", S13).
+# FONTTINY ț: t without its foot, one clear row, comma (Florin's pick ț1). FONTTINY
+# â: ă with the bar turned into an open hat, body 1 px low (Florin's pick â1).
+# FONTTINY Â: right half of the hat over a 4-row A, 1 px low, as Ă (Florin's pick
+# Â8); before, tiny Â was pixel for pixel the same as A.
+
+# ---------- FONTINTR (dialogs), height 9 ----------
+[FONTINTR ă]
+13.13.
+2112..
+.113..
+.2213.
+.1113.
+13213.
+21113.
+.222..
+......
+[FONTINTR â]
+..13..
+.1213.
+.113..
+.2213.
+.1113.
+13213.
+21113.
+.222..
+......
+[FONTINTR î]
+.13.
+1213
+.13.
+.13.
+.13.
+.13.
+.13.
+.2..
+....
+[FONTINTR ș]
+......
+......
+.113..
+132...
+2113..
+13213.
+2113..
+.22...
+..13..
+[FONTINTR t]
+....
+13..
+13..
+113.
+12..
+13..
+.13.
+.2..
+....
+[FONTINTR ț]
+....
+13..
+13..
+113.
+12..
+13..
+.13.
+.2..
+.13.
+[FONTINTR Ă]
+11113.
+2222..
+.113..
+12213.
+11113.
+12213.
+13.13.
+2..2..
+......
+[FONTINTR Â]
+..13..
+.1213.
+.113..
+12213.
+11113.
+12213.
+13.13.
+2..2..
+......
+[FONTINTR Î]
+.13.
+1213
+.13.
+.13.
+.13.
+.13.
+.13.
+.2..
+....
+[FONTINTR Ș]
+.1113..
+122213.
+213.2..
+.213...
+..213..
+13.213.
+21113..
+.222...
+..13...
+[FONTINTR Ț]
+1113.
+212..
+.13..
+.13..
+.13..
+.13..
+.13..
+.2...
+.13..
+
+# ---------- FONTTINY (@smallfont), height 6 ----------
+[FONTTINY ă]
+111.
+....
+.11.
+1.1.
+111.
+....
+[FONTTINY â]
+.1..
+1.1.
+....
+.11.
+1.1.
+111.
+[FONTTINY î]
+.1..
+1.1.
+....
+.1..
+.1..
+....
+[FONTTINY ș]
+....
+.11.
+1...
+..1.
+11..
+.1..
+[FONTTINY t]
+1..
+11.
+1..
+1..
+.1.
+...
+[FONTTINY ț]
+1..
+11.
+1..
+1..
+...
+1..
+[FONTTINY Ă]
+111.
+....
+.1..
+1.1.
+111.
+1.1.
+[FONTTINY Â]
+.1..
+..1.
+.1..
+1.1.
+111.
+1.1.
+[FONTTINY Î]
+.1..
+1.1.
+....
+.1..
+.1..
+.1..
+[FONTTINY Ș]
+.11.
+1...
+.1..
+..1.
+11..
+.1..
+[FONTTINY Ț]
+111.
+.1..
+.1..
+.1..
+....
+.1..
+
+# ---------- FONTKING (the King's scroll), height 7 ----------
+[FONTKING ă]
+3.3.
+.3..
+....
+133.
+3.3.
+1333
+....
+[FONTKING â]
+.3..
+3.3.
+....
+133.
+3.3.
+1333
+....
+[FONTKING î]
+.3..
+3.3.
+....
+.3..
+.3..
+.3..
+....
+[FONTKING ș]
+.....
+.....
+.133.
+.3...
+..3..
+331..
+..3..
+[FONTKING ț]
+...
+3..
+33.
+3..
+3..
+.3.
+3..
+[FONTKING Ă]
+.3.3.
+..3..
+.133.
+.3.3.
+.333.
+.3.3.
+....3
+[FONTKING Â]
+..3..
+.3.3.
+.133.
+.3.3.
+.333.
+.3.3.
+....3
+[FONTKING Î]
+...3..
+..3.3.
+...3..
+...3..
+...3..
+..333.
+.3....
+[FONTKING Ș]
+.133..
+.3....
+..331.
+....3.
+3...3.
+13331.
+..3...
+[FONTKING Ț]
+.3333
+3..3.
+...3.
+...3.
+..3..
+.....
+..3..
+
+# ---------- FONT-NP (capital titles), height 8 ----------
+# Capitals only: like the German font, lowercase slots get the capital glyph.
+[FONT-NP Ă]
+.2...2..
+..2223..
+..223...
+.12.32..
+.222231.
+12..132.
+22...23.
+........
+[FONT-NP Â]
+...2....
+..2.2...
+..223...
+.12.32..
+.222231.
+12..132.
+22...23.
+........
+[FONT-NP Î]
+.22..
+2..2.
+.23..
+.23..
+.23..
+.23..
+2222.
+.....
+[FONT-NP Ș]
+1233.
+2113.
+32...
+1332.
+..23.
+2113.
+2231.
+.2...
+[FONT-NP Ț]
+223332.
+2.32.3.
+..32...
+..32...
+..32...
+..32...
+.2222..
+...2...
+[FONT-NP ă]
+.2...2..
+..2223..
+..223...
+.12.32..
+.222231.
+12..132.
+22...23.
+........
+[FONT-NP â]
+...2....
+..2.2...
+..223...
+.12.32..
+.222231.
+12..132.
+22...23.
+........
+[FONT-NP î]
+.22..
+2..2.
+.23..
+.23..
+.23..
+.23..
+2222.
+.....
+[FONT-NP ș]
+1233.
+2113.
+32...
+1332.
+..23.
+2113.
+2231.
+.2...
+[FONT-NP ț]
+223332.
+2.32.3.
+..32...
+..32...
+..32...
+..32...
+.2222..
+...2...

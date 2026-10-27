@@ -9,9 +9,10 @@ Each one was found by runtime measurement, not by guessing.
 | `traderoute-boycott-v2` (+ `-tail`) | `0x41215`, `0x428C6` | **recommended** | trade routes silently refuse to deliver boycotted goods to a colony |
 | `traderoute-topup` | `0x41384` | **recommended** | a later pick-up stop on a route loads nothing when every hold is in use, even part-full |
 | `rng-idle-stir` | `0xC2FD` | **recommended** | the RNG is reset to the clock about 18 times a second, so battles close in time draw nearly the same number |
+| `traderoute-unload-cap` (+ `-loop`) | `0x2A7CA`, `0x411F0` | **recommended** | a route unloads everything into a full colony and the excess spoils; now it stops at the storage limit and the rest stays on board |
 
 Start from the original `VICEROY.EXE`. `--all` applies every **recommended**
-patch (today: all of them).
+patch (today: all of them). An **experimental** patch is applied only when named.
 
 ## Apply
 
@@ -107,7 +108,8 @@ and `traderoute-boycott-v2-tail`; `--all` applies both.
 |---|---|
 | `VICEROY.EXE` original (v3.0, 494,910 bytes) | `0f5d5b0063721fbc6aca314e5a43ddaf` |
 | original + v2 pair | `8610ad255a2940448439d63b87e931bd` |
-| original + all recommended (v2 pair, topup, idle-stir) | `1905cb45ddc4ad95a8497e50a0276d8e` |
+| original + all recommended (v2 pair, topup, idle-stir, cap pair) | `40c5827211da71be83722c3676ab8ec4` |
+| original + v2 pair, topup, idle-stir (the recommended set before 2026-10-27) | `1905cb45ddc4ad95a8497e50a0276d8e` |
 
 ## The first fix (withdrawn)
 
@@ -201,6 +203,46 @@ games, no hang.
 |---|---|
 | original + `traderoute-topup` only | `f5399c8b96e37bd5b3c778fbae781b25` |
 | original + the first boycott fix + `traderoute-topup` (QEMU test EXE) | `f827c0bdd89a27de811941315b027c14` |
+
+---
+
+# Patch 4: a route unload stops at the storage limit (`traderoute-unload-cap`)
+
+A trade route unloads everything it carries, even into a full colony; the
+excess spoils at the end of the turn. The unload routine (`0x2A6A6`) does
+check the capacity, but only warns, and only inside the colony screen. This
+is the original game, not one of these patches.
+
+On a route the patch gives the free room to the routine's own partial-unload
+path (the one the "how much?" prompt uses): it deposits what fits and puts
+the rest back on the carrier. A second site in the route loop moves on to the
+next good when an unload left goods on board; without it the loop would look
+for the same hold forever. Food is never capped, the colony screen still
+shows its warning, Europe stops are not changed.
+
+```
+0x2A7CA:  35 bytes   room = capacity - stock; on a route, unload only room
+0x411F0:  83 7E E6 00 7D 26   ->   0B C0 74 28 90 90   (or ax,ax / jz 0x4121C)
+```
+
+`--all` applies both. By name, always both:
+
+```
+python3 patch/apply_patch.py /path/to/COLONIZE/VICEROY.EXE traderoute-unload-cap traderoute-unload-cap-loop
+```
+
+Measured in QEMU on 2026-10-27: Jamestown furs 195, capacity 200, a wagon
+brings 15. Without the patch the colony gets 210; with it 200, and the wagon
+keeps 10 furs in one hold (at its pick-up stop `traderoute-topup` fills that
+hold to 20). The game runs on, no hang. The boycott Europe stop (gold +180,
+boycotted furs kept) and colony stop (cotton 0 → 5, furs 62 → 77) give the
+same numbers with and without the cap. **Recommended** since 2026-10-27; `--all`
+applies both sites.
+Details: [docs/ANALYSIS.md](docs/ANALYSIS.md#a-route-unload-ignores-the-colonys-storage-vanilla).
+
+| | MD5 |
+|---|---|
+| original + the cap pair only | `e228de0a7f1e82d90f7616bdc19c661f` |
 
 ---
 

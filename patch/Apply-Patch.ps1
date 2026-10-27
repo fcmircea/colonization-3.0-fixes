@@ -5,13 +5,15 @@ Binary patches for Sid Meier's Colonization, MS-DOS version 3.0.
 .DESCRIPTION
 PowerShell version of apply_patch.py, for machines without Python. It reads
 patches.json from its own folder and follows the same rules and exit codes.
+-Manifest reads another patch list (same format) instead, for example an
+optional set kept apart from the bug fixes.
 The test suite in tests/ runs against both and checks they behave the same.
 
 Works on Windows PowerShell 5.1 and PowerShell 7+.
 
 Exit codes:
   0 success or nothing to do   1 file not found      2 bad command line
-  3 unexpected bytes on disk   5 conflicting patches 6 invalid patches.json
+  3 unexpected bytes on disk   5 conflicting patches 6 invalid manifest
 
 .EXAMPLE
   .\Apply-Patch.ps1 "D:\Games\Games\MPS\COLONIZE\VICEROY.EXE" -List
@@ -19,6 +21,7 @@ Exit codes:
   .\Apply-Patch.ps1 "...\VICEROY.EXE" -All
   .\Apply-Patch.ps1 "...\VICEROY.EXE" traderoute-topup
   .\Apply-Patch.ps1 "...\VICEROY.EXE" traderoute-topup -Revert
+  .\Apply-Patch.ps1 "...\VICEROY.EXE" -Manifest other.json -List
 #>
 [CmdletBinding()]
 param(
@@ -28,7 +31,8 @@ param(
     [switch] $Revert,
     [switch] $List,
     [Alias('Check')][switch] $Status,
-    [switch] $Force
+    [switch] $Force,
+    [string] $Manifest = ''
 )
 
 # Errors are reported with Fail, which sets a real exit code. Do not use
@@ -136,8 +140,11 @@ function Write-Atomic([string] $path, [byte[]] $data) {
 
 # ---- load manifest -------------------------------------------------------------
 
-try { $man = Read-Manifest (Join-Path $PSScriptRoot 'patches.json') }
-catch { Fail 6 "error: invalid patches.json: $($_.Exception.Message)" }
+# A relative -Manifest resolves against the PowerShell location, like $Exe below.
+$ManifestPath = if ($Manifest) { $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Manifest) }
+                else { Join-Path $PSScriptRoot 'patches.json' }
+try { $man = Read-Manifest $ManifestPath }
+catch { Fail 6 "error: invalid $([System.IO.Path]::GetFileName($ManifestPath)): $($_.Exception.Message)" }
 $patches = @($man.patches)
 $byId = @{}
 foreach ($p in $patches) { $byId[$p.id] = $p }

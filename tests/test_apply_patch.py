@@ -71,11 +71,13 @@ class PythonImpl:
     script = "apply_patch.py"
 
     @staticmethod
-    def argv(script: Path, exe, ids=(), **flags):
+    def argv(script: Path, exe, ids=(), manifest=None, **flags):
         cmd = [sys.executable, str(script), str(exe), *ids]
         for flag, on in flags.items():
             if on:
                 cmd.append("--" + flag.replace("_", "-"))
+        if manifest is not None:
+            cmd += ["--manifest", str(manifest)]
         return cmd
 
 
@@ -86,10 +88,12 @@ class PowerShellImpl:
              "status": "-Status", "check": "-Check", "force": "-Force"}
 
     @classmethod
-    def argv(cls, script: Path, exe, ids=(), **flags):
-        cmd = [PWSH, "-NoProfile", "-NonInteractive", "-File", str(script), str(exe), *ids]
+    def argv(cls, script: Path, exe, ids=(), manifest=None, **flags):
+        cmd = [PWSH, "-NoProfile", "-NonInteractive", "-File", str(script), str(exe)]
         cmd += [cls.FLAGS[f] for f, on in flags.items() if on]
-        return cmd
+        if manifest is not None:
+            cmd += ["-Manifest", str(manifest)]
+        return cmd + list(ids)
 
 
 # COL1_PWSH picks the shell, e.g. "powershell" for Windows PowerShell 5.1.
@@ -117,8 +121,8 @@ class PatcherTests:
     def use_manifest(self, m):
         (self.tool / "patches.json").write_text(json.dumps(m, indent=2), encoding="utf-8")
 
-    def run_tool(self, ids=(), exe=None, cwd=None, **flags):
-        cmd = self.impl.argv(self.tool / self.impl.script, exe or self.exe, ids, **flags)
+    def run_tool(self, ids=(), exe=None, cwd=None, manifest=None, **flags):
+        cmd = self.impl.argv(self.tool / self.impl.script, exe or self.exe, ids, manifest, **flags)
         r = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd or self.tmp)
         return r.returncode, r.stdout, r.stderr
 
@@ -345,6 +349,46 @@ class PatcherTests:
         m["schema"] = 1
         self.assert_manifest_rejected(m)
 
+    # ---- --manifest: a second patch list ------------------------------------------
+
+    def other_manifest(self) -> dict:
+        m = copy.deepcopy(REAL_MANIFEST)
+        m["patches"] = [dict(id="other-x", title="X", status="recommended", offset="0x300",
+                             original="5555", patched="6666", asm_before="x", asm_after="y",
+                             md5_alone="0" * 32, summary="test")]
+        return m
+
+    def test_manifest_option_uses_the_named_list(self):
+        m = self.other_manifest()
+        path = self.tmp / "other.json"
+        path.write_text(json.dumps(m), encoding="utf-8")
+        both = copy.deepcopy(REAL_MANIFEST)
+        both["patches"] += m["patches"]
+        self.exe.write_bytes(fake_exe(both))
+        self.assertEqual(self.run_tool(["other-x"])[0], 2)        # not in patches.json
+        rc, _, err = self.run_tool(["other-x"], manifest=path)
+        self.assertEqual(rc, 0, err)
+        self.assertEqual(self.exe.read_bytes(), fake_exe(both, applied={"other-x"}))
+        rc, out, _ = self.run_tool(status=True, manifest=path)
+        self.assertIn("other-x", out)
+        self.assertNotIn("traderoute-boycott", out)
+
+    def test_manifest_option_relative_path_resolves_from_working_directory(self):
+        m = self.other_manifest()
+        (self.game / "other.json").write_text(json.dumps(m), encoding="utf-8")
+        both = copy.deepcopy(REAL_MANIFEST)
+        both["patches"] += m["patches"]
+        self.exe.write_bytes(fake_exe(both))
+        rc, _, err = self.run_tool(["other-x"], manifest=Path("other.json"), cwd=self.game)
+        self.assertEqual(rc, 0, err)
+        self.assertEqual(self.exe.read_bytes(), fake_exe(both, applied={"other-x"}))
+
+    def test_manifest_option_missing_file_is_invalid_manifest(self):
+        self.exe.write_bytes(fake_exe(REAL_MANIFEST))
+        rc, _, _ = self.run_tool(all=True, manifest=self.tmp / "nope.json")
+        self.assertEqual(rc, 6)
+        self.assertEqual(self.exe.read_bytes(), fake_exe(REAL_MANIFEST))
+
     # ---- paths ----------------------------------------------------------------
 
     def test_relative_path_resolves_from_working_directory(self):
@@ -485,18 +529,19 @@ class RealBinaryStaticTests(unittest.TestCase):
         self.assertEqual(md5(bytes(d)), "7289494e2ba2561792092a5918d075bd")
 
     def test_recommended_set_matches_play_exe(self):
-        # --all applies every recommended patch: since 2026-10-19 the v2
-        # boycott pair, topup and idle-stir (QEMU-tested as play/re-skiptest/v2).
+        # --all applies every recommended patch: the v2 boycott pair, topup and
+        # idle-stir since 2026-10-19 (1905cb45), plus the unload cap pair since
+        # 2026-10-27 (QEMU-tested as play/unload-cap/GAME-after).
         rec = [p for p in REAL_MANIFEST["patches"] if p["status"] == "recommended"]
         self.assertEqual(sorted(p["id"] for p in rec),
                          ["rng-idle-stir", "traderoute-boycott-v2", "traderoute-boycott-v2-tail",
-                          "traderoute-topup"])
+                          "traderoute-topup", "traderoute-unload-cap", "traderoute-unload-cap-loop"])
         d = bytearray(self.data)
         for p in rec:
             off = int(p["offset"], 16)
             new = bytes.fromhex(p["patched"])
             d[off:off + len(new)] = new
-        self.assertEqual(md5(bytes(d)), "1905cb45ddc4ad95a8497e50a0276d8e")
+        self.assertEqual(md5(bytes(d)), "40c5827211da71be83722c3676ab8ec4")
 
     def overlays(self):
         """(header, code start, end, relocated file offsets) for each overlay.

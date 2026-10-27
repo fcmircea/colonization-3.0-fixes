@@ -53,6 +53,37 @@
       "notes": "Not related to the boycott: the same result with the boycott bit on and off. Europe stops use a different load path (0x4124F) and are not touched."
     },
     {
+      "id": "traderoute-unload-cap",
+      "title": "Trade routes stop unloading at the colony's storage limit (the rest stays on board)",
+      "status": "recommended",
+      "offset": "0x2A7CA",
+      "original": "8b7608d1e68b1e42858b809a000306c48d3b46fe7e74837e0800746e833e9008007467",
+      "patched": "8b7608d1e68b1e42852b809a003b06c48d7d770bf67473833e9008007505ff46faebb1",
+      "asm_before": "stock + amount > capacity, not food, [0890] set (colony screen) -> warning at 0x2A7ED; else deposit everything at 0x2A854",
+      "asm_after": "room = capacity - stock; room >= amount or food -> deposit everything (0x2A854); [0890] set -> warning at 0x2A7ED (unchanged); else inc [bp-6] / jmp 0x2A79E (the game's own partial unload with ax = room)",
+      "md5_alone": "f0942de6b4a63116de19c0271052ef13",
+      "conflicts": [],
+      "summary": "The cargo unload routine (0x2A6A6) checks the colony's storage capacity but only warns, and only inside the colony screen; a trade route unloads everything and the excess spoils at the end of the turn. On a route ([0890] = 0) this patch hands the free room to the routine's own partial-unload path (the one the 'how much?' prompt uses): it deposits what fits and gives the rest back to the carrier. Nothing fits: nothing changes, return value 2. Food is never capped, as in the original warning.",
+      "verified": "QEMU 2026-10-27 (docs/ANALYSIS.md, 'The cap'): Jamestown furs 195 + 15 at capacity 200 -> 200, wagon keeps 10, no hang; boycott-v2 Europe and colony stops unchanged. Recommended by Florin 2026-10-27.",
+      "caveat": "Needs traderoute-unload-cap-loop: alone, a route with goods left on board loops forever (the original route loop re-finds the hold and ignores the return value). Apply both or neither.",
+      "notes": "The colony screen's callers (via the stub 0x2C9C9) all run inside 0x2C5D4, which sets [0890] = 1 at 0x2C60F and clears it at 0x2C965, so they still get the WAREHOUSEFULL warning unchanged. The route loop (0x411E8) is the only caller with [0890] = 0. No relocation in 0x2A7CA-0x2A7EC."
+    },
+    {
+      "id": "traderoute-unload-cap-loop",
+      "title": "Helper for traderoute-unload-cap (route loop moves on when an unload returns non-zero)",
+      "status": "recommended",
+      "offset": "0x411F0",
+      "original": "837ee6007d26",
+      "patched": "0bc074289090",
+      "asm_before": "cmp word [bp-1Ah],0 / jge 0x4121C",
+      "asm_after": "or ax,ax / jz 0x4121C / nop / nop",
+      "md5_alone": "5ca59d92aaf89e8345450f544b079dd7",
+      "conflicts": [],
+      "summary": "After each unload the route loop looks for another hold with the same good. With this patch it does so only when the unload returned 0 (everything delivered); otherwise it goes on to the next good, so goods kept on board by traderoute-unload-cap do not make it loop. The no-hold branch arrives with ax = -1 and goes to the next good as before.",
+      "caveat": "Only with traderoute-unload-cap.",
+      "notes": "Alone it changes nothing: the colony unload (0x2A6A6) and the Europe unload (0x32914) both return 0 after a delivery from the route, and their returns of 1 (no hold, the 'how much?' prompt) are not reachable from the route loop. Does not touch the boycott-v2 site (0x41215) or its target 0x411F6."
+    },
+    {
       "id": "rng-idle-stir",
       "title": "Stop the idle loop flattening the RNG (battle randomness)",
       "status": "recommended",

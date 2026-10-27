@@ -11,6 +11,10 @@ this tool.
     python3 apply_patch.py VICEROY.EXE --all
     python3 apply_patch.py VICEROY.EXE traderoute-topup
     python3 apply_patch.py VICEROY.EXE traderoute-topup --revert
+    python3 apply_patch.py VICEROY.EXE --manifest other.json --list
+
+--manifest reads another patch list (same format) instead of patches.json,
+for example an optional set kept apart from the bug fixes.
 
 Safety rules:
   * Every byte at every patch site is checked before anything is written.
@@ -26,7 +30,7 @@ Safety rules:
 
 Exit codes:
   0 success or nothing to do   1 file not found      2 bad command line
-  3 unexpected bytes on disk   5 conflicting patches 6 invalid patches.json
+  3 unexpected bytes on disk   5 conflicting patches 6 invalid manifest
 """
 
 import argparse
@@ -170,13 +174,15 @@ def main(argv=None) -> int:
     ap.add_argument("--list", action="store_true", help="describe the available patches")
     ap.add_argument("--status", "--check", dest="status", action="store_true",
                     help="report what is applied; change nothing")
+    ap.add_argument("--manifest", type=Path, default=MANIFEST,
+                    help="patch list to use (default: patches.json next to this script)")
     ap.add_argument("--force", action="store_true", help=argparse.SUPPRESS)
     args = ap.parse_args(argv)
 
     try:
-        man = load_manifest(MANIFEST)
+        man = load_manifest(args.manifest.resolve())
     except ManifestError as e:
-        print(f"error: invalid patches.json: {e}", file=sys.stderr)
+        print(f"error: invalid {args.manifest.name}: {e}", file=sys.stderr)
         return EXIT_MANIFEST
     patches = man["patches"]
     by_id = {p["id"]: p for p in patches}
