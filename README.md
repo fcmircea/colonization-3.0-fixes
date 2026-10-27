@@ -1,8 +1,17 @@
-# Colonization (1994) — binary fixes
+# Colonization 3.0 fixes
 
-Small, verified binary patches for **Sid Meier's Colonization**, MS-DOS
-version 3.0 (`VICEROY.EXE`, 494,910 bytes, md5 `0f5d5b0063721fbc6aca314e5a43ddaf`).
-Each one was found by runtime measurement, not by guessing.
+Fixes and additions for **Sid Meier's Colonization**, MS-DOS version 3.0
+(`VICEROY.EXE`, 494,910 bytes, md5 `0f5d5b0063721fbc6aca314e5a43ddaf`).
+Every fix was found by runtime measurement, not by guessing. You bring your own
+copy of the game; nothing from it is in this repository.
+
+One installer, three parts:
+
+| part | what you get | needs |
+|---|---|---|
+| **1. Fixes** (always) | four bugs fixed in `VICEROY.EXE` (table below) | your DOS game |
+| **2. CD music** (optional) | the game plays the CD's orchestral tracks instead of the FM tunes; with an MP3 copy of the CD also the Windows version's three jingles | your Colonization CD image (`.cue` + `.bin`); for MP3: ffmpeg; for the jingles: your Windows Colonization folder |
+| **3. Romanian** (optional) | the whole game in Romanian, with period flavour; see [README.ro.md](README.ro.md) | nothing more |
 
 | patch | offset | status | what it fixes |
 |---|---|---|---|
@@ -11,10 +20,58 @@ Each one was found by runtime measurement, not by guessing.
 | `rng-idle-stir` | `0xC2FD` | **recommended** | the RNG is reset to the clock about 18 times a second, so battles close in time draw nearly the same number |
 | `traderoute-unload-cap` (+ `-loop`) | `0x2A7CA`, `0x411F0` | **recommended** | a route unloads everything into a full colony and the excess spoils; now it stops at the storage limit and the rest stays on board |
 
-Start from the original `VICEROY.EXE`. `--all` applies every **recommended**
-patch (today: all of them). An **experimental** patch is applied only when named.
+## Install
 
-## Apply
+1. Download `colonization-fixes-v1.0.zip` from the
+   [Releases](https://github.com/fcmircea/colonization-3.0-fixes/releases) page and unzip it anywhere.
+2. Run the installer:
+   - Windows: double-click `Install.cmd` (Windows PowerShell 5.1 or later; no
+     Python needed).
+   - Linux or macOS: `sh install.sh` (needs Python 3).
+3. Answer the questions: where your `COLONIZE` folder is, whether you want CD
+   music, and whether you want Romanian. Enter takes the default.
+
+Your game folder is **only read**. The installer makes a new play folder,
+`Colonization`, next to it:
+
+```
+Colonization/
+  MPS/COLONIZE     your game, English, with the fixes (your saves come along)
+  MPS/ROMANA       the same in Romanian (if chosen)
+  MPS/CD           your CD image (if chosen); MPS/CD/mp3: the MP3 copy
+  Play.cmd  Setup.cmd  Romana.cmd  English.cmd     Windows
+  play.sh   setup.sh   Romana.sh   English.sh      Linux, macOS
+```
+
+The first start runs the setup: which DOSBox to use (DOSBox-Daum, DOSBox
+Staging or DOSBox-X; it can download DOSBox Staging for you), the default
+language, CD music and its volume, fullscreen or window. Run `Setup.cmd` /
+`setup.sh` again at any time to change it.
+
+To add a part later, run the installer again: what is already there is left
+as it is. To undo everything, delete the play folder. A game you patched
+before with these patchers is fine: the installer finds the original EXE in
+the backup the patcher kept (`VICEROY.EXE.0f5d5b00.bak`) or undoes the fixes on
+its copy. An EXE it does not recognise is refused, and nothing is written.
+
+The installer also runs without questions, for scripts:
+
+```
+python3 install/install.py --game /path/to/COLONIZE --cd /path/to/Colonize.cue --ro --yes
+Install.cmd -Game "D:\Games\MPS\COLONIZE" -Cd "D:\CD\Colonize.cue" -Ro -Yes
+```
+
+**CD music** works through a small replacement sound driver (`cdshim/`): it
+keeps the original `PSOUND.COL` as `PSOUND.FM` and plays a CD track wherever
+the game asks for a song that has one. Sound effects, and the few songs with
+no CD track, still play as before. It works only when your game's sound setup
+loads `PSOUND.COL`; with no CD the game sounds exactly as it did.
+
+## The patchers alone
+
+The installer uses these two patchers. You can also run them yourself on your
+own `VICEROY.EXE`. `--all` applies every **recommended** patch; an
+**experimental** patch is applied only when named.
 
 ```
 python3 patch/apply_patch.py /path/to/COLONIZE/VICEROY.EXE --list
@@ -248,24 +305,32 @@ Details: [docs/ANALYSIS.md](docs/ANALYSIS.md#a-route-unload-ignores-the-colonys-
 
 ## Repository contents
 
+- `install/` — the installer: `install.py` (Python 3) and its twin
+  `Install.ps1` (PowerShell), started by `install.sh` / `Install.cmd`.
 - `patch/` — `patches.json` (the patch list) and the two patchers.
-- `tests/` — tests for both patchers (`python3 -m unittest discover -s tests`).
-  Set `COL1_PRISTINE_EXE` to your own unmodified `VICEROY.EXE` to also run
-  the real-binary checks (md5 of every patch, `srand()` untouched,
-  relocation audits of the MZ image and the overlays).
+- `cdshim/` — the CD-audio sound driver (GNU as source, `build.py`) and
+  `cue2audio.py` (CD image to MP3 tracks, with the jingles).
+- `harness/` — the launchers and setup (`play.sh`, `Play.ps1`, `setup.sh`,
+  `Setup.ps1`, ...), and a headless QEMU + gdb rig for runtime RE of a DOS
+  game: hardware watchpoints, RNG state sampling, scripted input.
+- `ro/` — the Romanian EXE patches (`patches-ro.json`), the font glyph source
+  and the tools. The translated text itself ships only in the release zip.
+- `tests/` — tests for everything above (`python3 -m unittest discover -s tests`).
+  Set `COL1_PRISTINE_EXE` to your own unmodified `VICEROY.EXE` and
+  `COL1_GAME_DIR` to your game folder to also run the real-binary checks.
 - `docs/ANALYSIS.md` — the trade-route bugs: mechanism, offsets, runtime evidence.
 - `docs/TAX-ANALYSIS.md` — when the King raises the tax, the Tea Party, boycotts.
 - `docs/COMBAT.md` — how a battle is decided; the CHEAT menu flag.
-- `docs/data/` — raw measurement logs.
-- `docs/sessions/` — session logs.
 - `docs/RNG-ANALYSIS.md` — the RNG defect, the patch, and the measurements.
 - `docs/METHOD.md` — how to reproduce the investigation.
 - `docs/DEAD-ENDS.md` — what looked right and wasn't. Read this before re-deriving it.
-- `harness/` — headless QEMU + gdb rig for runtime RE of a DOS game:
-  hardware watchpoints, RNG state sampling, scripted input.
+- `docs/data/`, `docs/sessions/` — raw measurement logs, session logs.
 
 ## Legal
 
-No game code is redistributed here. The patcher modifies a copy of
-`VICEROY.EXE` that you already own. Colonization is © MicroProse / 2K.
-Tooling and documentation in this repository are MIT licensed (see `LICENSE`).
+No game code is redistributed. The patchers change a copy of `VICEROY.EXE`
+that you already own; the CD music comes from your own CD image. The
+release zip's Romanian part holds translated game text and fonts made from
+the original files; they are of use only with your own copy of the game.
+Colonization is © MicroProse / 2K. Tooling and documentation in this
+repository are MIT licensed (see `LICENSE`).
