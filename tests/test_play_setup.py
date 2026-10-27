@@ -33,6 +33,7 @@ class PlayFolder:
         (mps / "CD" / "mp3" / "Colonize.cue").write_text("")
         (self.dir / "daum").mkdir()
         (self.dir / "daum" / "dosbox.conf").write_text("[sdl]\nfullscreen=true\n[autoexec]\nold\n")
+        (self.dir / "daum" / "dosbox.exe").write_bytes(b"")
         for f in ("play.sh", "setup.sh", "Romana.sh", "English.sh"):
             shutil.copy(HARNESS / f, self.dir / f)
         self.home = Path(base) / "home"
@@ -113,6 +114,14 @@ class SetupSh(unittest.TestCase):
         r = self.p.run("setup.sh", answers="1\n1\n1\n\n1\nn\n")
         self.assertEqual(r.returncode, 1)
         self.assertFalse(self.p.settings.exists())
+
+    def test_daum_offered_only_with_daum_folder(self):
+        # a play folder made by the installer has no daum/: Staging becomes choice 1
+        shutil.rmtree(self.p.dir / "daum")
+        r = self.p.run("setup.sh", answers="1\n2\n2\n60\n2\ny\nn\n")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertNotIn("DOSBox-Daum", r.stdout)
+        self.assertIn("emulator=staging", self.p.settings.read_text())
 
     def test_download_offered_only_without_staging(self):
         r = self.p.run("setup.sh", answers="")
@@ -255,6 +264,13 @@ class PowerShellTwins(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertIn("Saved answers removed.", r.stdout)
         self.assertFalse(self.settings.exists())
+
+    def test_setup_without_daum_folder(self):
+        shutil.rmtree(self.p.dir / "daum")
+        r = self.pwsh("Setup.ps1", answers="1\n2\n2\n60\n2\ny\nn\n")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertNotIn("DOSBox-Daum", r.stdout)
+        self.assertIn("emulator=staging", self.settings.read_text())
 
     def test_play_per_emulator(self):
         self.settings.write_text(f"emulator=staging\nemulator_path={self.staging}\nlanguage=COLONIZE\n"

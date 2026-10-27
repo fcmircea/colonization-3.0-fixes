@@ -26,7 +26,8 @@ mps=$here/MPS
 daum=$here/daum
 settings=$here/settings-linux.txt
 
-if [ ! -f "$settings" ] && [ -t 0 ] && [ -f "$here/setup.sh" ]; then
+# no settings, or no emulator chosen yet (the installer writes only language and cdmusic)
+if ! grep -qs '^emulator=' "$settings" && [ -t 0 ] && [ -f "$here/setup.sh" ]; then
   bash "$here/setup.sh" --from-play || exit $?
 fi
 # key=value lines, read as data, never run

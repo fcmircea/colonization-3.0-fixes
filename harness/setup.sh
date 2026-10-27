@@ -85,7 +85,10 @@ cur_emu=$(setting emulator)
 while :; do
   labels=() values=() paths=()
   wine_note=; command -v wine >/dev/null || wine_note=" (needs wine, not installed)"
-  labels+=("DOSBox-Daum under Wine (the Windows build in daum/)$wine_note"); values+=(daum); paths+=("")
+  # Daum is a Windows build kept in daum/; a new play folder has none
+  if [ -f "$here/daum/dosbox.exe" ]; then
+    labels+=("DOSBox-Daum under Wine (the Windows build in daum/)$wine_note"); values+=(daum); paths+=("")
+  fi
   if [ -n "$staging" ]; then labels+=("DOSBox Staging ($staging)"); values+=(staging); paths+=("$staging"); fi
   if [ -n "$xpath" ]; then labels+=("DOSBox-X ($xpath)"); values+=(x); paths+=("$xpath"); fi
   if [ -z "$staging" ]; then labels+=("Download DOSBox Staging from GitHub (native, recommended)"); values+=(download); paths+=(""); fi

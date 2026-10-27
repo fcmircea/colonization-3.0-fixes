@@ -132,6 +132,11 @@ function Find-PristineExe([string] $game) {
 
 function Copy-Game([string] $game, [string] $dst) {
     Copy-Tree $game $dst @('*.bak', 'VICEROY.old.exe', 'PSOUND.FM')
+    # a game that already has the CD shim: the copy gets the original driver back
+    $col = Join-Path $game 'PSOUND.COL'; $fm = Join-Path $game 'PSOUND.FM'
+    if ((Test-Path -LiteralPath $col) -and (Test-Path -LiteralPath $fm) -and (Test-Shim $col) -and (Get-Md5 $fm) -eq $PsoundMd5) {
+        Copy-Item -LiteralPath $fm -Destination (Join-Path $dst 'PSOUND.COL') -Force
+    }
     $exe = Join-Path $dst 'VICEROY.EXE'
     $src = Find-PristineExe $game
     if ($src) { Copy-Item -LiteralPath $src -Destination $exe -Force; return }

@@ -113,7 +113,11 @@ $staging = Find-Staging
 $xexe = Find-DosboxX
 $curEmu = $cur['emulator']
 while ($true) {
-    $labels = @('DOSBox-Daum (the build in daum\)'); $values = @('daum'); $paths = @('')
+    $labels = @(); $values = @(); $paths = @()
+    # Daum is kept in daum\; a new play folder has none
+    if (Test-Path -LiteralPath (Join-Path $here 'daum\dosbox.exe')) {
+        $labels += 'DOSBox-Daum (the build in daum\)'; $values += 'daum'; $paths += ''
+    }
     if ($staging) { $labels += "DOSBox Staging ($staging)"; $values += 'staging'; $paths += $staging }
     if ($xexe) { $labels += "DOSBox-X ($xexe)"; $values += 'x'; $paths += $xexe }
     if (-not $staging) { $labels += 'Download DOSBox Staging from GitHub'; $values += 'download'; $paths += '' }

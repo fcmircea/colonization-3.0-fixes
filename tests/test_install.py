@@ -257,6 +257,34 @@ class InstallCd(Base, unittest.TestCase):
                         "--no-mp3", "--no-ro")
         self.assertEqual(code, installer.EXIT_REFUSED, out)
 
+    def test_game_that_already_has_the_shim(self):
+        # the player's folder holds the shim and the original as PSOUND.FM
+        shim = self.tmp / "shim.COL"
+        subprocess.run([sys.executable, str(ROOT / "cdshim/build.py"), "-o", str(shim), "--fm", "PSOUND.FM"],
+                       check=True, capture_output=True)
+        shutil.copy2(self.game / "PSOUND.COL", self.game / "PSOUND.FM")
+        shutil.copy2(shim, self.game / "PSOUND.COL")
+        self.before = tree(self.game)
+        code, out = self.run_installer("--game", self.game, "--dest", self.dest, "--cd", self.make_cue(),
+                                       "--no-mp3", "--no-ro")
+        self.assertEqual(code, 0, out)
+        en = self.dest / "MPS" / "COLONIZE"
+        self.assertEqual(md5(en / "PSOUND.FM"), installer.PSOUND_MD5)
+        self.assertTrue(installer.is_shim(en / "PSOUND.COL"))
+
+    def test_game_that_already_has_the_shim_no_cd(self):
+        shim = self.tmp / "shim.COL"
+        subprocess.run([sys.executable, str(ROOT / "cdshim/build.py"), "-o", str(shim), "--fm", "PSOUND.FM"],
+                       check=True, capture_output=True)
+        shutil.copy2(self.game / "PSOUND.COL", self.game / "PSOUND.FM")
+        shutil.copy2(shim, self.game / "PSOUND.COL")
+        self.before = tree(self.game)
+        code, out = self.run_installer("--game", self.game, "--dest", self.dest, "--no-cd", "--no-ro")
+        self.assertEqual(code, 0, out)
+        en = self.dest / "MPS" / "COLONIZE"
+        self.assertEqual(md5(en / "PSOUND.COL"), installer.PSOUND_MD5)   # the original, no shim
+        self.assertFalse((en / "PSOUND.FM").exists())
+
     def test_cue_with_missing_file_refused(self):
         cue = self.make_cue()
         (cue.parent / "Disc.bin").unlink()

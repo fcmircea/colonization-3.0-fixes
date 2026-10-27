@@ -124,6 +124,10 @@ def copy_game(game: Path, dst: Path):
     """Copy the player's game, minus EXE backups, then put the original EXE in."""
     ignore = shutil.ignore_patterns("*.bak", "*.BAK", "VICEROY.old.exe", "PSOUND.FM")
     shutil.copytree(game, dst, ignore=ignore)
+    # a game that already has the CD shim: the copy gets the original driver back
+    col, fm = game / "PSOUND.COL", game / "PSOUND.FM"
+    if col.is_file() and fm.is_file() and is_shim(col) and md5(fm) == PSOUND_MD5:
+        shutil.copy2(fm, dst / "PSOUND.COL")
     exe = dst / "VICEROY.EXE"
     src = pristine_exe(game)
     if src is not None:

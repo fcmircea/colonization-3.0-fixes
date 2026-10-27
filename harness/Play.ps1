@@ -32,7 +32,9 @@ $mps  = Join-Path $PSScriptRoot 'MPS'
 $daum = Join-Path $PSScriptRoot 'daum'
 $settingsFile = Join-Path $PSScriptRoot 'settings-windows.txt'
 
-if (-not (Test-Path -LiteralPath $settingsFile) -and [Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
+# no settings, or no emulator chosen yet (the installer writes only language and cdmusic)
+$chosen = (Test-Path -LiteralPath $settingsFile) -and (Select-String -LiteralPath $settingsFile -Pattern '^emulator=' -Quiet)
+if (-not $chosen -and [Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
     & (Join-Path $PSScriptRoot 'Setup.ps1') -FromPlay
     if ($LASTEXITCODE) { exit $LASTEXITCODE }
 }
