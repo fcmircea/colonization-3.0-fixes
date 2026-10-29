@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import struct
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -22,7 +23,17 @@ _spec = importlib.util.spec_from_file_location("cdshim_build", ROOT / "cdshim" /
 build = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(build)
 
-HAVE_BINUTILS = bool(shutil.which("as") and shutil.which("ld"))
+def _have_binutils():
+    """GNU as and an ld that links elf_i386 (MinGW's ld on Windows does not)."""
+    if not (shutil.which("as") and shutil.which("ld")):
+        return False
+    try:
+        return "elf_i386" in subprocess.run(["ld", "-V"], capture_output=True, text=True).stdout
+    except OSError:
+        return False
+
+
+HAVE_BINUTILS = _have_binutils()
 GAME = os.environ.get("COL1_GAME_DIR")
 HAVE_GAME = bool(GAME) and (Path(GAME) / "PSOUND.COL").is_file()
 LOADED = 0x56                       # body offset of the "FM driver loaded" byte

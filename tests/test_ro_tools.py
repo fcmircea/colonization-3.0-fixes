@@ -12,6 +12,7 @@
 Run:  python -m unittest discover -s tests -v
 """
 import csv
+import importlib.util
 import os
 import shutil
 import sys
@@ -31,6 +32,7 @@ GAME = os.environ.get("COL1_GAME_DIR")
 HAVE_GAME = bool(GAME) and (Path(GAME) / "GAME.TXT").is_file()
 LANG = os.environ.get("COL1_LANG_TESTS")
 HAVE_LANG = bool(LANG) and (Path(LANG) / "NL100" / "NAMES.TXT").is_file()
+HAVE_PIL = importlib.util.find_spec("PIL") is not None   # render.py writes PNGs with it
 
 EN_FILES = {
     "GAME.TXT": [
@@ -363,6 +365,7 @@ class RenderSynthetic(unittest.TestCase):
         self.assertIn("fixed_over_width", self.flags(en, ["@width=20", "aa", "", "a" * 11]))
         self.assertIn("fixed_over_screen", self.flags(en, ["@width=20", "aa", "", "a" * 80]))
 
+    @unittest.skipUnless(HAVE_PIL, "needs Pillow")
     def test_end_to_end_writes_reports_and_png(self):
         tmp = tempfile.mkdtemp()
         try:
