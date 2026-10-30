@@ -110,8 +110,9 @@ def run_patcher(argv):
 
 def pristine_exe(game: Path) -> Path:
     """The original VICEROY.EXE in the player's folder: the EXE itself, or a
-    backup the patcher (or the player) kept."""
-    names = ["VICEROY.EXE", f"VICEROY.EXE.{PRISTINE_MD5[:8]}.bak", "VICEROY.old.exe"]
+    backup the patcher (or the player) kept. VICEROY.EXE.bak is the August 2026
+    patcher's backup, next to its withdrawn two-byte fix."""
+    names = ["VICEROY.EXE", f"VICEROY.EXE.{PRISTINE_MD5[:8]}.bak", "VICEROY.old.exe", "VICEROY.EXE.bak"]
     names += sorted(p.name for p in game.glob("VICEROY.EXE.*.bak"))
     for n in dict.fromkeys(names):
         p = game / n

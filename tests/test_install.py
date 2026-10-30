@@ -139,6 +139,19 @@ class Install(Base, unittest.TestCase):
         self.assertEqual(md5(en / "VICEROY.EXE"), FIXED_MD5)
         self.assertEqual(sorted(p.name for p in en.glob("*.bak")), ["VICEROY.EXE.0f5d5b00.bak"])
 
+    def test_august_fix_with_its_backup(self):
+        # the August 2026 patcher: two-byte fix at 0x4121A, backup VICEROY.EXE.bak
+        exe = self.game / "VICEROY.EXE"
+        shutil.copy2(exe, self.game / "VICEROY.EXE.bak")
+        data = bytearray(exe.read_bytes())
+        self.assertEqual(data[0x4121A:0x4121C], b"\x75\xDA")
+        data[0x4121A:0x4121C] = b"\x90\x90"
+        exe.write_bytes(bytes(data))
+        self.before = tree(self.game)
+        code, out = self.run_installer("--game", self.game, "--dest", self.dest, "--no-cd", "--no-ro")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(md5(self.dest / "MPS" / "COLONIZE" / "VICEROY.EXE"), FIXED_MD5)
+
     def test_patched_game_without_backup_is_reverted(self):
         shutil.copy2(Path(GAME) / "VICEROY.EXE", self.game / "VICEROY.EXE")
         self.before = tree(self.game)

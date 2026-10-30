@@ -119,9 +119,10 @@ function Copy-Tree([string] $src, [string] $dst, [string[]] $skip) {
 }
 
 # The original VICEROY.EXE in the player's folder: the EXE itself, or a backup
-# the patcher (or the player) kept.
+# the patcher (or the player) kept. VICEROY.EXE.bak is the August 2026
+# patcher's backup, next to its withdrawn two-byte fix.
 function Find-PristineExe([string] $game) {
-    $names = @('VICEROY.EXE', "VICEROY.EXE.$($PristineMd5.Substring(0, 8)).bak", 'VICEROY.old.exe')
+    $names = @('VICEROY.EXE', "VICEROY.EXE.$($PristineMd5.Substring(0, 8)).bak", 'VICEROY.old.exe', 'VICEROY.EXE.bak')
     $names += Get-ChildItem -LiteralPath $game -Filter 'VICEROY.EXE.*.bak' | Sort-Object Name | ForEach-Object { $_.Name }
     foreach ($n in $names) {
         $p = Join-Path $game $n
