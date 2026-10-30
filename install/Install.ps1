@@ -280,11 +280,14 @@ Write-Host ''
 if (-not $Game) { $Game = Ask-Path 'Your COLONIZE folder (it holds VICEROY.EXE)' '' }
 if (-not $Game) { Fail 2 'no game folder given' }
 if (-not (Test-Path -LiteralPath (Join-Path $Game 'VICEROY.EXE') -PathType Leaf)) { Fail 1 "no VICEROY.EXE in $Game" }
-$Game = (Resolve-Path -LiteralPath $Game).Path.TrimEnd('\', '/')
+# Both paths through GetFullPath: it expands 8.3 names (FLORIN~1) where
+# Resolve-Path does not, so the inside-the-game check compares like with like.
+$Game = [IO.Path]::GetFullPath((Resolve-Path -LiteralPath $Game).Path).TrimEnd('\', '/')
 if (-not $Dest) { $Dest = Ask-Path 'New play folder' (Join-Path (Split-Path -Parent $Game) 'Colonization') }
-$Dest = [IO.Path]::GetFullPath($Dest).TrimEnd('\', '/')
+$Dest = [IO.Path]::GetFullPath($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Dest)).TrimEnd('\', '/')
 $sep = [IO.Path]::DirectorySeparatorChar
-if ($Dest -eq $Game -or $Dest.StartsWith($Game + $sep)) { Fail 2 'the play folder must not be the game folder or inside it' }
+$ic = [StringComparison]::OrdinalIgnoreCase
+if ($Dest.Equals($Game, $ic) -or $Dest.StartsWith($Game + $sep, $ic)) { Fail 2 'the play folder must not be the game folder or inside it' }
 
 $cue = ''
 if (-not $NoCd) {

@@ -22,7 +22,7 @@ One installer, three parts:
 
 ## Install
 
-1. Download `colonization-fixes-v1.0.zip` from the
+1. Download `colonization-fixes-v1.0.1.zip` from the
    [Releases](https://github.com/fcmircea/colonization-3.0-fixes/releases) page and unzip it anywhere.
 2. Run the installer:
    - Windows: double-click `Install.cmd` (Windows PowerShell 5.1 or later; no

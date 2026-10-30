@@ -22,7 +22,7 @@ Un singur program de instalare, trei părți:
 
 ## Instalare
 
-1. Descarcă `colonization-fixes-v1.0.zip` de pe pagina
+1. Descarcă `colonization-fixes-v1.0.1.zip` de pe pagina
    [Releases](https://github.com/fcmircea/colonization-3.0-fixes/releases) și
    dezarhivează-l oriunde.
 2. Pornește programul de instalare:
